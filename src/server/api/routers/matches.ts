@@ -5,10 +5,8 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { eventState, match, team } from "@/server/db/schema";
+import { eventState, match } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
-import type { Field } from "@/server/db/schema";
-import console from "console";
 
 
 export const matchesRouter = createTRPCRouter({
@@ -49,7 +47,7 @@ export const matchesRouter = createTRPCRouter({
     .input(z.object({ field: z.enum(["Stone", "Bronze"]) }))
     .query(async ({ ctx, input }) => {
       try {
-        const state = await ctx.db.select().from(eventState).where(eq(eventState.field, "Bronze"));
+        const state = await ctx.db.select().from(eventState).where(eq(eventState.field, input.field));
         return state[0];
       } catch (error) {
         console.log(error);
