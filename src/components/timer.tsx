@@ -24,7 +24,7 @@ export function Timer({ field }: TimerProps) {
     useEffect(() => {
         if (!fieldState) return
 
-        const TIMER_DURATION = 3 * 60 * 1000 // 3 minutes in milliseconds
+        const TIMER_DURATION = 2.5 * 60 * 1000 // 3 minutes in milliseconds
         const COUNTDOWN_DURATION = 5000 // 5 seconds countdown
 
         const updateTimer = () => {
