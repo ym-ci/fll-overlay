@@ -2,34 +2,14 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
+  pgEnum,
   pgTable,
   pgTableCreator,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-export const createTable = pgTableCreator((name) => `pg-drizzle_${name}`);
-
-export const posts = createTable(
-  "post",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdById: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => user.id),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [
-    index("created_by_idx").on(t.createdById),
-    index("name_idx").on(t.name),
-  ],
-);
+import type { InferSelectModel } from "drizzle-orm";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -45,7 +25,7 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at")
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+}).enableRLS();
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -58,7 +38,7 @@ export const session = pgTable("session", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-});
+}).enableRLS();
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
@@ -76,7 +56,7 @@ export const account = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-});
+}).enableRLS();
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -89,17 +69,69 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at").$defaultFn(
     () => /* @__PURE__ */ new Date(),
   ),
-});
+}).enableRLS();
 
-export const userRelations = relations(user, ({ many }) => ({
-  account: many(account),
-  session: many(session),
+// Field enum - restricts field names to valid values
+export const fieldEnum = pgEnum("field", ["Stone", "Bronze"]);
+
+
+// Teams table - robotics teams competing
+export const team = pgTable("team", {
+  number: integer("number").primaryKey(),
+  name: text("name").notNull(),
+  organization: text("organization").notNull(),
+}).enableRLS();
+
+// Export Team type
+export type Team = InferSelectModel<typeof team>;
+
+// Matches at a robotics competition
+// We have two fields each with table A and table B
+export const match = pgTable("match", {
+  number: integer("number").primaryKey(),
+  isPractice: boolean("is_practice").notNull(),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  tableA: integer("table_a").references(() => team.number),
+  tableB: integer("table_b").references(() => team.number),
+  field: fieldEnum("field").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  isAfterBreak: boolean("is_after_break").notNull().default(false),
+}).enableRLS();
+
+// Field type - union of valid field values
+export type Field = typeof fieldEnum.enumValues[number];
+
+// Export Match type
+export type Match = InferSelectModel<typeof match>;
+
+// Relations
+export const teamRelations = relations(team, ({ many }) => ({
+  matchesAsTableA: many(match, { relationName: "tableA" }),
+  matchesAsTableB: many(match, { relationName: "tableB" }),
 }));
 
-export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, { fields: [account.userId], references: [user.id] }),
+export const matchRelations = relations(match, ({ one }) => ({
+  teamA: one(team, {
+    fields: [match.tableA],
+    references: [team.number],
+    relationName: "tableA",
+  }),
+  teamB: one(team, {
+    fields: [match.tableB],
+    references: [team.number],
+    relationName: "tableB",
+  }),
 }));
 
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, { fields: [session.userId], references: [user.id] }),
-}));
+// Event state - Bronze and Stone Current Match 
+// Also timer data - timer start time (current time is calculated on the client)
+// one row kv store. ie values are in the one row keys are the column names
+// I still want the typesafety of zod
+// field should be the main key
+export const eventState = pgTable("event_state", {
+  field: fieldEnum("field").primaryKey(),
+  currentMatch: integer("current_match").notNull(),
+  timerStart: timestamp("timer_start").notNull(),
+  holdStart: boolean("hold_start").notNull().default(false),
+}).enableRLS();
+
