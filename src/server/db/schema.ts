@@ -94,7 +94,7 @@ export const match = pgTable("match", {
   tableA: integer("table_a").references(() => team.number),
   tableB: integer("table_b").references(() => team.number),
   field: fieldEnum("field").notNull(),
-  startTime: timestamp("start_time").notNull(),
+  startTime: timestamp("start_time"),
   isAfterBreak: boolean("is_after_break").notNull().default(false),
 }).enableRLS();
 
@@ -130,8 +130,17 @@ export const matchRelations = relations(match, ({ one }) => ({
 // field should be the main key
 export const eventState = pgTable("event_state", {
   field: fieldEnum("field").primaryKey(),
-  currentMatch: integer("current_match").notNull(),
-  timerStart: timestamp("timer_start").notNull(),
+  currentMatch: integer("current_match")
+    .notNull()
+    .references(() => match.number),
+  timerStart: timestamp("timer_start"),
   holdStart: boolean("hold_start").notNull().default(false),
 }).enableRLS();
+
+export const eventStateRelations = relations(eventState, ({ one }) => ({
+  match: one(match, {
+    fields: [eventState.currentMatch],
+    references: [match.number],
+  }),
+}));
 
