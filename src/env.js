@@ -15,7 +15,6 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    ABLY_FULL: z.string(),
   },
 
   /**
@@ -24,7 +23,6 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_ABLY_SUB: z.string(),
   },
 
   /**
@@ -35,8 +33,6 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    ABLY_FULL: process.env.ABLY_FULL,
-    NEXT_PUBLIC_ABLY_SUB: process.env.NEXT_PUBLIC_ABLY_SUB,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

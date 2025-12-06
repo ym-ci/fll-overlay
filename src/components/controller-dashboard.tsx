@@ -34,6 +34,7 @@ interface ControllerDashboardProps {
 type Field = "Stone" | "Bronze";
 
 const TIMER_DURATION = 3 * 60 * 1000; // 3 minutes in milliseconds
+const COUNTDOWN_DURATION = 5000; // 5 seconds countdown
 
 export function ControllerDashboard({ user }: ControllerDashboardProps) {
     const router = useRouter();
@@ -57,6 +58,7 @@ export function ControllerDashboard({ user }: ControllerDashboardProps) {
     const timerRunning = fieldState ? !fieldState.holdStart && !!fieldState.timerStart : false;
 
     const [timerValue, setTimerValue] = useState(180); // 3 minutes in seconds
+    const [isCountdown, setIsCountdown] = useState(false);
 
     // Update timer value based on field state
     useEffect(() => {
@@ -64,15 +66,30 @@ export function ControllerDashboard({ user }: ControllerDashboardProps) {
 
         if (fieldState.holdStart || !fieldState.timerStart) {
             setTimerValue(180); // Reset to 3 minutes
+            setIsCountdown(false);
             return;
         }
 
         const updateTimer = () => {
             if (!fieldState.timerStart) return;
-            const elapsed = Date.now() - new Date(fieldState.timerStart).getTime();
-            const remaining = TIMER_DURATION - elapsed;
-            const remainingSeconds = Math.max(0, Math.floor(remaining / 1000));
-            setTimerValue(remainingSeconds);
+
+            const now = Date.now();
+            const start = new Date(fieldState.timerStart).getTime();
+            const elapsedTotal = now - start;
+
+            if (elapsedTotal < COUNTDOWN_DURATION) {
+                // Countdown phase
+                setIsCountdown(true);
+                const remainingCountdown = COUNTDOWN_DURATION - elapsedTotal;
+                setTimerValue(Math.ceil(remainingCountdown / 1000));
+            } else {
+                // Match phase
+                setIsCountdown(false);
+                const matchElapsed = elapsedTotal - COUNTDOWN_DURATION;
+                const remaining = TIMER_DURATION - matchElapsed;
+                const remainingSeconds = Math.max(0, Math.floor(remaining / 1000));
+                setTimerValue(remainingSeconds);
+            }
         };
 
         updateTimer();
@@ -120,6 +137,9 @@ export function ControllerDashboard({ user }: ControllerDashboardProps) {
     };
 
     const formatTime = (seconds: number) => {
+        if (isCountdown) {
+            return `Starts in ${seconds}`;
+        }
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, "0")}`;

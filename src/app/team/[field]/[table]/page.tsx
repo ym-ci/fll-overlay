@@ -25,7 +25,7 @@ export default function TeamPage({ params }: TeamPageProps) {
     const { data: matchState } = api.matches.getCurrentMatch.useQuery(
         { field },
         {
-            refetchInterval: 500, // Refetch every 500ms to stay in sync
+            refetchInterval: 1500, // Refetch every 500ms to stay in sync
         }
     )
 
